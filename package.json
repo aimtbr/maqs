@@ -1,0 +1,31 @@
+{
+  "name": "maqs",
+  "description": "Quickly manipulate the date and time in a convenient way",
+  "version": "1.0.0",
+  "author": "Maxim Marchuk",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "homepage": "https://github.com/aimtbr/maqs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aimtbr/maqs"
+  },
+  "bugs": {
+    "url": "https://github.com/aimtbr/maqs/issues"
+  },
+  "scripts": {
+    "lint": "npx tsc",
+    "build": "npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.22.9",
+    "@babel/core": "^7.22.9",
+    "@babel/plugin-transform-runtime": "^7.22.9",
+    "@babel/preset-env": "^7.22.9",
+    "@babel/preset-typescript": "^7.22.5",
+    "typescript": "^5.1.6"
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.22.6"
+  }
+}
