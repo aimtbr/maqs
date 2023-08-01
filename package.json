@@ -15,7 +15,7 @@
   },
   "scripts": {
     "lint": "npx tsc",
-    "build": "npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production"
+    "build": "npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production --extensions \".ts\""
   },
   "devDependencies": {
     "@babel/cli": "^7.22.9",
@@ -29,3 +29,4 @@
     "@babel/runtime": "^7.22.6"
   }
 }
+
