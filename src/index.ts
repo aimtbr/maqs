@@ -1,5 +1,6 @@
 export { convert } from './convert';
 export { compare } from './compare';
+import { settings } from './entities/Settings';
 // export { maqsAsync } from './entities/MaqsAsync';
 
 export const maqs = function (datetime: string) {
@@ -8,9 +9,9 @@ export const maqs = function (datetime: string) {
 };
 
 // TODO: manually extend the function own properties (helpers and functions which instantiate a class on its own)
+maqs.setLocalTimeZone = settings.setTimeZone;
 // maqs.today = today;
 // maqs.convert = convert;
-
 
 /**
  * 1. Get the current date
@@ -54,4 +55,8 @@ export const maqs = function (datetime: string) {
  *    maqs.today().year, maqs(datetime: string).year
  *    maqs.today().daysInMonth, maqs(datetime: string).daysInMonth
  *    maqs.today().isLeapYear, maqs(datetime: string).isLeapYear
+ *
+ * 7. maqs(datetime: string)
+ *      .setTimeFormat(value: 12 | 24)
+ *      .toString(format = DATETIME_PATTERN_TZ_ISO8601 | DATETIME_PATTERN_UTC_ISO8601) // UTC if the time zone is 0, otherwise TZ
  */
