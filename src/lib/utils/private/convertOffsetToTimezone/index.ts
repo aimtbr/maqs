@@ -1,6 +1,6 @@
 import { MINUTES_IN_HOUR, UTC_OFFSET, UTC_TIMEZONE } from 'src/lib/constants';
 
-export const convertOffsetToTimeZone = (offset: number): string => {
+export const convertOffsetToTimezone = (offset: number): string => {
   if (typeof offset !== 'number') {
     return UTC_TIMEZONE;
   }
