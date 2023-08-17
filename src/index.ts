@@ -1,11 +1,12 @@
-export { convert } from './aliases/convert';
-export { compare } from './aliases/compare';
-import { Maqs } from './entities/Maqs';
+export { convert } from './modules/convert';
+export { compare } from './modules/compare';
+import { Maqs, MaqsAccepts } from './entities/Maqs';
 import { settings } from './entities/Settings';
 import { today } from './lib/utils/public/today';
-// export { maqsAsync } from './entities/MaqsAsync';
+// TODO: implement the async version of Maqs to dynamically import all dependencies
+// export { AMaqs } from './entities/MaqsAsync';
 
-export const maqs = function (datetime: string | number | Date) {
+export const maqs = function (datetime: MaqsAccepts) {
   return new Maqs(datetime);
 };
 
@@ -14,7 +15,7 @@ maqs.setLocalTimeZone = settings.setTimezone;
 maqs.today = today;
 // maqs.convert = convert;
 
-console.log(maqs.today());
+console.log(maqs(maqs(maqs.today())).hour);
 
 /**
  * 1. Get the current date
@@ -52,7 +53,7 @@ console.log(maqs.today());
  * 5. maqs(datetime: string)
  *      .addYear|Month|Day|Hour|Minute|Second(value: number)
  *      .subtractYear|Month|Day|Hour|Minute|Second(value: number)
- *      .applyTimeZone(timezone: number (minutes) | string e.g. '+03:00') // set the time zone and update the datetime respectively
+ *      .updateTimeZone(timezone: number (minutes) | string e.g. '+03:00') // set the time zone and update the datetime respectively
  *      .toString(format = DATETIME_PATTERN_TZ_ISO8601 | DATETIME_PATTERN_UTC_ISO8601) // UTC if the time zone is 0, otherwise TZ
  *
  * 6. maqs.today().timeZone, maqs(datetime: string).timeZone
@@ -66,7 +67,10 @@ console.log(maqs.today());
  */
 
 /**
- * TODO: create validations
+ * Validations
  * 1. isTimeZone (use in convertTimeZoneToOffset)
- * 2. isFormat (use in toString)
+ * 2. isFormatPattern (use in toString)
+ *
+ * Utils
+ * 1. clone
  */

@@ -1,3 +1,5 @@
 export const getLocalTimezoneOffset = (): number => {
-  return new Date().getTimezoneOffset();
+  const REVERSE_SIGN = -1;
+  
+  return new Date().getTimezoneOffset() * REVERSE_SIGN;
 };

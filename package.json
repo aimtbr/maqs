@@ -15,8 +15,8 @@
   },
   "scripts": {
     "lint": "npx tsc",
-    "build": "npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production --extensions \".ts\"",
-    "build:dev": "npx tsc --project tsconfig.json && npx babel src -d dist --env-name development --extensions \".ts\""
+    "build": "rm -rf dist && npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production --extensions \".ts\"",
+    "build:dev": "rm -rf dist && npx tsc --project tsconfig.json && npx babel src -d dist --env-name development --extensions \".ts\""
   },
   "devDependencies": {
     "@babel/cli": "^7.22.9",
@@ -24,10 +24,10 @@
     "@babel/plugin-transform-runtime": "^7.22.9",
     "@babel/preset-env": "^7.22.9",
     "@babel/preset-typescript": "^7.22.5",
+    "babel-plugin-module-resolver": "^5.0.0",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "@babel/runtime": "^7.22.6"
   }
 }
-

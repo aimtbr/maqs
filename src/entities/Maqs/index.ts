@@ -3,75 +3,119 @@ import {
   LEAP_YEAR_DAYS_IN_SECOND_MONTH,
   LEAP_YEAR_FREQUENCY,
   UTC_OFFSET,
-  UTC_TIMEZONE,
 } from 'src/lib/constants';
 import { convertTimezoneToOffset } from 'src/lib/utils/private/convertTimezoneToOffset';
-import { TimeFormat } from './types';
+import { TimeFormat } from 'src/types';
 import { memory } from '../Memory';
 import { PATTERN_TIMEZONE } from 'src/lib/patterns';
 import { isTimezone } from 'src/lib/utils/public/isTimezone';
 import { convertOffsetToTimezone } from 'src/lib/utils/private/convertOffsetToTimezone';
 import { isTimezoneOffset } from 'src/lib/utils/public/isTimezoneOffset';
 import { getLocalTimezoneOffset } from 'src/lib/utils/public/getLocalTimezoneOffset';
-import { getReadableError } from 'src/lib/utils/private/getReadableError';
+import { getInvalidValuePortionError } from 'src/lib/errors/getInvalidValuePortionError';
+import { getInvalidValueError } from 'src/lib/errors/getInvalidValueError';
+
+export type MaqsAccepts = string | number | Date | Maqs;
 
 export class Maqs {
+  // PROPERTIES
+  #sourceValue: MaqsAccepts;
+  #year: number;
+  #month: number;
+  #day: number;
+  #hour: number;
+  #minute: number;
+  #second: number;
+  #millisecond: number;
+  #weekday: number;
+  #timestamp: number;
+  #timezoneOffset: number = UTC_OFFSET;
+  #timeFormat: number = 24;
+
+  // GETTERS
   /**
-   * Returns the value provided as an argument to `constructor`.
+   * The value provided as an argument to `constructor`.
    */
-  protected sourceValue: string | number | Date;
+  get sourceValue() {
+    return this.#sourceValue;
+  }
 
   /**
-   * Returns the year of the current value.
+   * The year of the current value.
    */
-  protected year: number;
+  get year() {
+    return this.#year;
+  }
 
   /**
-   * Returns the month of the current value [1-12], where 1 is January.
+   * The month of the current value [1-12], where 1 is January.
    */
-  protected month: number;
+  get month() {
+    return this.#month;
+  }
 
   /**
-   * Returns the day of the month of the current value [1-31].
+   * The day of the month of the current value [1-31].
    */
-  protected day: number;
+  get day() {
+    return this.#day;
+  }
 
   /**
-   * Returns the hour of the current value [0-23].
+   * The hour of the current value [0-23].
    */
-  protected hour: number;
+  get hour() {
+    return this.#hour;
+  }
 
   /**
-   * Returns the minute of the current value [0-59].
+   * The minute of the current value [0-59].
    */
-  protected minute: number;
+  get minute() {
+    return this.#minute;
+  }
 
   /**
-   * Returns the second of the current value [0-59].
+   * The second of the current value [0-59].
    */
-  protected second: number;
+  get second() {
+    return this.#second;
+  }
 
   /**
-   * Returns the second of the current value [0-999].
+   * The second of the current value [0-999].
    */
-  protected millisecond: number;
+  get millisecond() {
+    return this.#millisecond;
+  }
 
   /**
-   * Returns the day of the week of the current value [1-7], where 1 is Monday.
+   * The day of the week of the current value [1-7], where 1 is Monday.
    */
-  protected weekday: number;
+  get weekday() {
+    return this.#weekday;
+  }
 
   /**
-   * Returns the time zone offset of the current value.
+   * The number of milliseconds since the [epoch](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#the_epoch_timestamps_and_invalid_date).
+   */
+  get timestamp() {
+    return this.#timestamp;
+  }
+
+  /**
+   * The time zone offset of the current value.
    *
    * For example, 0 is UTC ("+00:00") or -180 is "-03:00" time zone.
    *
    * @default 0
    */
-  protected timezoneOffset: number = UTC_OFFSET;
+  get timezoneOffset() {
+    return this.#timezoneOffset;
+  }
 
   /**
-   * Returns a time format of the current value.
+   * The time format of the current value.
    *
    * The formatted output string will be represented with AM or PM if 12 is provided.
    *
@@ -79,21 +123,19 @@ export class Maqs {
    *
    * @default 24
    */
-  protected timeFormat: number = 24;
+  get timeFormat() {
+    return this.#timeFormat;
+  }
 
-  constructor(datetime: string | number | Date) {
-    const parsedDate = Maqs.#parseValue(datetime);
-
-    this.year = parsedDate.year;
-    this.month = parsedDate.month;
-    this.day = parsedDate.day;
-    this.hour = parsedDate.hour;
-    this.minute = parsedDate.minute;
-    this.second = parsedDate.second;
-    this.millisecond = parsedDate.millisecond;
-    this.weekday = parsedDate.weekday;
-    this.timezoneOffset = parsedDate.timezoneOffset;
-    this.sourceValue = datetime;
+  /**
+   * Returns the time zone of the current value.
+   *
+   * For example, "+00:00" (UTC), "-03:00".
+   *
+   * @default "+00:00"
+   */
+  get timezone(): string {
+    return convertOffsetToTimezone(this.timezoneOffset);
   }
 
   /**
@@ -107,17 +149,6 @@ export class Maqs {
     }
 
     return daysPerMonth[this.month - 1];
-  }
-
-  /**
-   * Returns the time zone of the current value.
-   *
-   * For example, "+00:00" (UTC), "-03:00".
-   *
-   * @default "+00:00"
-   */
-  get timezone(): string {
-    return convertOffsetToTimezone(this.timezoneOffset);
   }
 
   /**
@@ -153,23 +184,55 @@ export class Maqs {
     return properties.join('');
   }
 
-  static #parseValue(value: string | number | Date) {
-    try {
-      let date = value as Date;
+  constructor(datetime: MaqsAccepts) {
+    const parsedDate = Maqs.#parseValue(datetime);
 
+    this.#year = parsedDate.year;
+    this.#month = parsedDate.month;
+    this.#day = parsedDate.day;
+    this.#hour = parsedDate.hour;
+    this.#minute = parsedDate.minute;
+    this.#second = parsedDate.second;
+    this.#millisecond = parsedDate.millisecond;
+    this.#weekday = parsedDate.weekday;
+    this.#timestamp = parsedDate.timestamp;
+    this.#timezoneOffset = parsedDate.timezoneOffset;
+    this.#sourceValue = datetime;
+  }
+
+  static #parseValue(value: MaqsAccepts) {
+    try {
+      if (value instanceof Maqs) {
+        return value;
+      }
+
+      // if the value is an instance of Date, then no need to wrap it with Date once more
+      let date = value as Date;
       if (!(value instanceof Date)) {
         date = new Date(value);
       }
 
-      if (Number.isNaN(date.valueOf())) {
-        throw new Error(getReadableError(value as string | number, 'date'));
+      // if the parsed value is invalid, it returns NaN
+      const timestamp = date.valueOf();
+      if (Number.isNaN(timestamp)) {
+        throw new Error(getInvalidValueError({ value: value as string | number, name: 'date' }));
+      }
+
+      const timezone = typeof value === 'string' ? value.match(PATTERN_TIMEZONE)?.[0] : undefined;
+      const isTimezoneProvided = timezone !== undefined;
+      if (isTimezoneProvided && !isTimezone(timezone)) {
+        throw new Error(
+          getInvalidValuePortionError({
+            value,
+            portion: timezone,
+            portionName: 'time zone',
+            allowedValues: ['+03:00', '+00:00', '-05:00'],
+          })
+        );
       }
 
       const weekday = date.getDay();
       const isSunday = weekday === 0;
-
-      const timezone = typeof value === 'string' ? value.match(PATTERN_TIMEZONE)?.[0] : undefined;
-      const isTimezoneProvided = timezone !== undefined;
 
       return {
         year: date.getFullYear(),
@@ -181,6 +244,7 @@ export class Maqs {
         millisecond: date.getMilliseconds(),
         weekday: isSunday ? 7 : weekday,
         timezoneOffset: isTimezoneProvided ? convertTimezoneToOffset(timezone) : UTC_OFFSET,
+        timestamp,
       };
     } catch (error) {
       throw new Error(`Value "${value}" cannot be parsed: [${error}]`);
@@ -189,17 +253,19 @@ export class Maqs {
 
   /**
    * Set a time format.
-   * @param timeFormat the time format that accepts either 12 or 24 representing the 12-hour or 24-hour forksmats respectively.
+   * @param timeFormat The time format that accepts either 12 or 24 representing the 12-hour or 24-hour forksmats respectively.
    */
   setTimeFormat(timeFormat: TimeFormat): Maqs {
     const allowedTimeFormats: TimeFormat[] = [12, 24];
 
     const isTimeFormatValid = allowedTimeFormats.includes(timeFormat);
     if (!isTimeFormatValid) {
-      throw new Error(getReadableError(timeFormat, 'time format', allowedTimeFormats));
+      throw new Error(
+        getInvalidValueError({ value: timeFormat, name: 'time format', allowedValues: allowedTimeFormats })
+      );
     }
 
-    this.timeFormat = timeFormat;
+    this.#timeFormat = timeFormat;
 
     return this;
   }
@@ -207,12 +273,37 @@ export class Maqs {
   /**
    * Set a time zone.
    *
-   * Note: it doesn't update the current value.
-   * @param timezone the time zone in the form of HH:mm" or "-HH:mm", for example, "+03:00", "+00:00" (UTC), "-05:00".
+   * Aliases:
+   * - "UTC" will be converted to "+00:00".
+   *
+   * **Note: it doesn't update the current value, use `updateTimezone` instead.**
+   *
+   * @param timezone The time zone in the form of "HH:mm" or "-HH:mm", for example, "+03:00", "+00:00" (UTC), "-05:00".
    */
   setTimezone(timezone: string): Maqs {
+    const aliases: Record<string, number> = {
+      UTC: UTC_OFFSET,
+    };
+
+    const isValidType = typeof timezone === 'string';
+    if (!isValidType) {
+      throw new Error(
+        getInvalidValueError({ value: timezone, name: 'time zone', allowedValues: ['+03:00', '+00:00', '-05:00'] })
+      );
+    }
+
+    const aliasValue = aliases[timezone];
+    const isAlias = aliasValue !== undefined;
+    if (isAlias) {
+      this.setTimezoneOffset(aliasValue);
+
+      return this;
+    }
+
     if (!isTimezone(timezone)) {
-      throw new Error(getReadableError(timezone, 'time zone', ['+03:00', '+00:00', '-05:00']));
+      throw new Error(
+        getInvalidValueError({ value: timezone, name: 'time zone', allowedValues: ['+03:00', '+00:00', '-05:00'] })
+      );
     }
 
     this.setTimezoneOffset(convertTimezoneToOffset(timezone));
@@ -223,19 +314,23 @@ export class Maqs {
   /**
    * Set a time zone offset.
    *
-   * Note: it doesn't update the current value.
-   * @param offset the time zone offset in minutes, for example, 180, 0, -300.
+   * **Note: it doesn't update the current value, use `updateTimezoneOffset` instead.**
+   *
+   * @param offset The time zone offset in minutes, for example, 180, 0, -300.
    */
   setTimezoneOffset(offset: number): Maqs {
     if (!isTimezoneOffset(offset)) {
-      throw new Error(getReadableError(offset, 'time zone offset', [180, 0, -300]));
+      throw new Error(getInvalidValueError({ value: offset, name: 'time zone offset', allowedValues: [180, 0, -300] }));
     }
 
-    this.timezoneOffset = offset;
+    this.#timezoneOffset = offset;
 
     return this;
   }
 
+  /**
+   * Sets the time zone of the current value to local.
+   */
   asLocal(): Maqs {
     this.setTimezoneOffset(getLocalTimezoneOffset());
 
