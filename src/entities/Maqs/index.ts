@@ -1,4 +1,9 @@
-import { LEAP_YEAR_DAYS_IN_SECOND_MONTH, LEAP_YEAR_FREQUENCY, UTC_OFFSET } from 'src/entities/Settings/constants';
+import {
+  FORMAT_MARKER_GROUPS,
+  LEAP_YEAR_DAYS_IN_SECOND_MONTH,
+  LEAP_YEAR_FREQUENCY,
+  UTC_OFFSET,
+} from 'src/entities/Settings/constants';
 import { convertTimezoneToOffset } from 'src/lib/utils/private/convertTimezoneToOffset';
 import { TimeFormat } from 'src/types';
 import { memory } from '../Memory';
@@ -11,6 +16,7 @@ import { getInvalidValuePortionError } from 'src/lib/errors/getInvalidValuePorti
 import { getInvalidValueError } from 'src/lib/errors/getInvalidValueError';
 import { settings } from '../Settings';
 import { getInvalidValueTypeError } from 'src/lib/errors/getInvalidValueTypeError';
+import { isStringFormat } from 'src/lib/utils/public/isStringFormat';
 
 export type MaqsAccepts = string | number | Date | Maqs;
 
@@ -337,8 +343,10 @@ export class Maqs {
    * @param format
    */
   toString(format = settings.defaultStringFormat): string {
-    if (typeof format !== 'string') {
-      throw new Error(getInvalidValueTypeError({ value: format, expectedType: 'string' }));
+    if (!isStringFormat(format)) {
+      throw new Error(
+        getInvalidValueError({ value: format, name: 'string format', allowedValues: FORMAT_MARKER_GROUPS })
+      );
     }
 
     const callId = `${this.#fingerprint};${format}`;

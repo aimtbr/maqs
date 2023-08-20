@@ -14,12 +14,11 @@ export enum FormatMarker {
   a,
 }
 
-export type FormatMarkerGroupStrict<
+export type FormatMarkerGroupStrictSize<
   Length extends number,
   MarkerGroups extends string[] = (keyof typeof FormatMarkerGroup)[]
 > = MarkerGroups[number]['length'] extends Length ? MarkerGroups[number] : never;
 
-type T = FormatMarkerGroupStrict<3>;
 export enum FormatMarkerGroup {
   YYYY,
   YY,
