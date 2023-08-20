@@ -1,4 +1,4 @@
-import { MINUTES_IN_HOUR, UTC_OFFSET } from 'src/lib/constants';
+import { MINUTES_IN_HOUR, UTC_OFFSET } from 'src/entities/Settings/constants';
 
 export const convertTimezoneToOffset = (timezone: string): number => {
   if (typeof timezone !== 'string') {

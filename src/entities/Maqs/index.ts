@@ -1,9 +1,4 @@
-import {
-  DATETIME_FORMAT_UTC_ISO8601,
-  LEAP_YEAR_DAYS_IN_SECOND_MONTH,
-  LEAP_YEAR_FREQUENCY,
-  UTC_OFFSET,
-} from 'src/lib/constants';
+import { LEAP_YEAR_DAYS_IN_SECOND_MONTH, LEAP_YEAR_FREQUENCY, UTC_OFFSET } from 'src/entities/Settings/constants';
 import { convertTimezoneToOffset } from 'src/lib/utils/private/convertTimezoneToOffset';
 import { TimeFormat } from 'src/types';
 import { memory } from '../Memory';
@@ -14,6 +9,8 @@ import { isTimezoneOffset } from 'src/lib/utils/public/isTimezoneOffset';
 import { getLocalTimezoneOffset } from 'src/lib/utils/public/getLocalTimezoneOffset';
 import { getInvalidValuePortionError } from 'src/lib/errors/getInvalidValuePortionError';
 import { getInvalidValueError } from 'src/lib/errors/getInvalidValueError';
+import { settings } from '../Settings';
+import { getInvalidValueTypeError } from 'src/lib/errors/getInvalidValueTypeError';
 
 export type MaqsAccepts = string | number | Date | Maqs;
 
@@ -29,8 +26,8 @@ export class Maqs {
   #millisecond: number;
   #weekday: number;
   #timestamp: number;
-  #timezoneOffset: number = UTC_OFFSET;
-  #timeFormat: number = 24;
+  #timezoneOffset: number = settings.timezoneOffset;
+  #timeFormat: number = settings.timeFormat;
 
   // GETTERS
   /**
@@ -128,7 +125,7 @@ export class Maqs {
   }
 
   /**
-   * Returns the time zone of the current value.
+   * The time zone of the current value.
    *
    * For example, "+00:00" (UTC), "-03:00".
    *
@@ -139,16 +136,29 @@ export class Maqs {
   }
 
   /**
-   * Returns the number of days in the `month` of the current value.
+   * The number of days in the `month` of the current value.
    */
   get daysInMonth(): number {
-    const daysPerMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const daysPerMonthMap: Record<number, number> = {
+      1: 31,
+      2: 28,
+      3: 31,
+      4: 30,
+      5: 31,
+      6: 30,
+      7: 31,
+      8: 31,
+      9: 30,
+      10: 31,
+      11: 30,
+      12: 31,
+    };
 
     if (this.month === 2 && this.isLeapYear) {
       return LEAP_YEAR_DAYS_IN_SECOND_MONTH;
     }
 
-    return daysPerMonth[this.month - 1];
+    return daysPerMonthMap[this.month];
   }
 
   /**
@@ -253,7 +263,7 @@ export class Maqs {
 
   /**
    * Set a time format.
-   * @param timeFormat The time format that accepts either 12 or 24 representing the 12-hour or 24-hour forksmats respectively.
+   * @param timeFormat The time format that accepts either 12 or 24 representing the 12-hour or 24-hour formats respectively.
    */
   setTimeFormat(timeFormat: TimeFormat): Maqs {
     const allowedTimeFormats: TimeFormat[] = [12, 24];
@@ -273,31 +283,16 @@ export class Maqs {
   /**
    * Set a time zone.
    *
-   * Aliases:
-   * - "UTC" will be converted to "+00:00".
-   *
    * **Note: it doesn't update the current value, use `updateTimezone` instead.**
    *
    * @param timezone The time zone in the form of "HH:mm" or "-HH:mm", for example, "+03:00", "+00:00" (UTC), "-05:00".
    */
   setTimezone(timezone: string): Maqs {
-    const aliases: Record<string, number> = {
-      UTC: UTC_OFFSET,
-    };
-
     const isValidType = typeof timezone === 'string';
     if (!isValidType) {
       throw new Error(
         getInvalidValueError({ value: timezone, name: 'time zone', allowedValues: ['+03:00', '+00:00', '-05:00'] })
       );
-    }
-
-    const aliasValue = aliases[timezone];
-    const isAlias = aliasValue !== undefined;
-    if (isAlias) {
-      this.setTimezoneOffset(aliasValue);
-
-      return this;
     }
 
     if (!isTimezone(timezone)) {
@@ -341,33 +336,20 @@ export class Maqs {
    *
    * @param format
    */
-  toString(format = DATETIME_FORMAT_UTC_ISO8601): string {
+  toString(format = settings.defaultStringFormat): string {
+    if (typeof format !== 'string') {
+      throw new Error(getInvalidValueTypeError({ value: format, expectedType: 'string' }));
+    }
+
     const callId = `${this.#fingerprint};${format}`;
 
-    // TODO: parse the format by checking if the sequence of characters is still valid or not, if not, then step back and take the composed value
-    const markerMap = {
-      YYYY: { type: 'year', year: 'numeric' }, // full year, for example, 2023
-      YY: { type: 'year', year: '2-digit' }, // 2-digits year, for example, 23
-      MMMM: { type: 'month', month: 'long' }, // full month, for example, January
-      MMM: { type: 'month', month: 'short' }, // short month, for example, Jan
-      MM: { type: 'month', month: '2-digit' }, // 2-digits month number, for example, 01, 12
-      M: { type: 'month', month: 'numeric' }, // month number, for example, 1, 12
-      DD: { type: 'day', day: '2-digit' }, // 2-digits day number, for example, 01, 05, 31
-      D: { type: 'day', day: 'numeric' }, // day number, for example, 1, 5, 31
-      dddd: { type: 'weekday', weekday: 'long' }, // full day of the week, for example, Monday, Sunday
-      ddd: { type: 'weekday', weekday: 'short' }, // short day of the week, for example, Mon, Sun
-      HH: { type: 'hour', hour: '2-digit' }, // 2-digits hour, for example, 00, 23
-      H: { type: 'hour', hour: 'numeric' }, // hour, for example, 0, 23
-      hh: { type: 'hour', hour12: true, hour: '2-digit' }, // 2-digits hour, the 12-hour time format, for example, 00, 12
-      h: { type: 'hour', hour12: true, hour: 'numeric' }, // hour, the 12-hour time format, for example, 0, 12
-      mm: { type: 'minute', minute: '2-digit' }, // 2-digits minute, for example, 00, 59
-      m: { type: 'minute', minute: 'numeric' }, // minute, for example, 0, 59
-      ss: { type: 'second', second: '2-digit' }, // 2-digits second, for example, 00, 59
-      s: { type: 'second', second: 'numeric' }, // second, for example, 0, 59
-      SSS: { type: 'fractionalSecond', fractionalSecondDigits: 3 }, // millisecond, for example, 000, 999
-      A: { type: 'dayPeriod', hour12: true }, // AM or PM (sets the time format to 12-hour if provided)
-      a: { type: 'dayPeriod', hour12: true }, // am or pm (sets the time format to 12-hour if provided)
-    };
+    // Add AM/PM or am/pm, and Z or time zone manually
+
+    const options = {};
+
+    const templateToString = () => {};
+
+    // templateToString`${}:${}`
 
     const result = '';
 

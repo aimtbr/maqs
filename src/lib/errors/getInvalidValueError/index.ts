@@ -1,5 +1,5 @@
 type Args = {
-  value: string | number;
+  value: unknown;
   name: string;
   allowedValues?: (string | number)[];
 };

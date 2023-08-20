@@ -1,6 +1,6 @@
 type Args = {
-  value: string | number | Date;
-  portion: string | number;
+  value: unknown;
+  portion: unknown;
   portionName: string;
   allowedValues?: (string | number)[];
 };

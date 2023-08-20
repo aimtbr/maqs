@@ -1,3 +1,5 @@
+import { FormatMarker, FormatMarkerGroup } from 'src/types';
+
 /**
  * UTC
  */
@@ -28,3 +30,15 @@ export const DATETIME_FORMAT_UTC_ISO8601 = 'YYYY-MM-DDTHH:mm:ss.SSSZ';
  * Time
  */
 export const MINUTES_IN_HOUR = 60;
+
+/**
+ * Format
+ */
+export const FORMAT_MARKERS = Object.keys(FormatMarker) as (keyof typeof FormatMarker)[];
+export const FORMAT_MARKER_GROUPS = Object.keys(FormatMarkerGroup) as (keyof typeof FormatMarkerGroup)[];
+export const FORMAT_LARGEST_MARKER_GROUP_SIZE = Math.max(
+  ...FORMAT_MARKER_GROUPS.map((markerGroup) => markerGroup.length)
+);
+export const FORMAT_SMALLEST_MARKER_GROUP_SIZE = Math.min(
+  ...FORMAT_MARKER_GROUPS.map((markerGroup) => markerGroup.length)
+);

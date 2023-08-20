@@ -1,4 +1,4 @@
-import { TIMEZONE_EARLIEST_OFFSET, TIMEZONE_LATEST_OFFSET } from 'src/lib/constants';
+import { TIMEZONE_EARLIEST_OFFSET, TIMEZONE_LATEST_OFFSET } from 'src/entities/Settings/constants';
 
 export const isTimezoneOffset = (offset: number): boolean => {
   const isValidType = typeof offset === 'number';

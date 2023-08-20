@@ -11,11 +11,11 @@ export const maqs = function (datetime: MaqsAccepts) {
 };
 
 // TODO: manually extend the function own properties (helpers and functions which instantiate a class on its own)
-maqs.setLocalTimeZone = settings.setTimezone;
+maqs.settings = settings;
 maqs.today = today;
 // maqs.convert = convert;
 
-console.log(maqs(maqs(maqs.today())).hour);
+console.log(maqs.today().setTimezone('UTC'));
 
 /**
  * 1. Get the current date
@@ -67,6 +67,10 @@ console.log(maqs(maqs(maqs.today())).hour);
  */
 
 /**
+ * Properties
+ * 1. calendar (Intl.DateTimeFormat().resolvedOptions())
+ * 2. locale (Intl.DateTimeFormat().resolvedOptions())
+ *
  * Validations
  * 1. isTimeZone (use in convertTimeZoneToOffset)
  * 2. isFormatPattern (use in toString)
