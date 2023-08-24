@@ -1,5 +1,3 @@
-import { FormatMarker, FormatMarkerGroup } from 'src/types';
-
 /**
  * UTC
  */
@@ -34,7 +32,34 @@ export const MINUTES_IN_HOUR = 60;
 /**
  * Format
  */
-export const FORMAT_MARKERS = Object.keys(FormatMarker) as (keyof typeof FormatMarker)[];
+export enum FormatMarkerGroup {
+  YYYY,
+  YY,
+  MMMM,
+  MMM,
+  MM,
+  M,
+  DD,
+  D,
+  dddd,
+  ddd,
+  HH,
+  hh,
+  h,
+  mm,
+  m,
+  ss,
+  s,
+  SSS,
+  A,
+  a,
+}
+
+export enum FormatMarkerEscape {
+  OPEN = '[',
+  CLOSED = ']',
+}
+
 export const FORMAT_MARKER_GROUPS = Object.keys(FormatMarkerGroup) as (keyof typeof FormatMarkerGroup)[];
 export const FORMAT_LARGEST_MARKER_GROUP_SIZE = Math.max(
   ...FORMAT_MARKER_GROUPS.map((markerGroup) => markerGroup.length)

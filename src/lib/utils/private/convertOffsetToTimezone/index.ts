@@ -1,8 +1,10 @@
 import { MINUTES_IN_HOUR, UTC_OFFSET, UTC_TIMEZONE } from 'src/entities/Settings/constants';
+import { getInvalidValueTypeError } from 'src/lib/errors/getInvalidValueTypeError';
 
 export const convertOffsetToTimezone = (offset: number): string => {
-  if (typeof offset !== 'number') {
-    return UTC_TIMEZONE;
+  const expectedType = 'number';
+  if (typeof offset !== expectedType) {
+    throw new Error(getInvalidValueTypeError({ value: offset, expectedType }));
   }
 
   if (offset === UTC_OFFSET) {

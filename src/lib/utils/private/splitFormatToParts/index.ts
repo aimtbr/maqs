@@ -1,46 +1,103 @@
-import { FORMAT_LARGEST_MARKER_GROUP_SIZE, FORMAT_SMALLEST_MARKER_GROUP_SIZE } from 'src/entities/Settings/constants';
-import { getInvalidValueTypeError } from 'src/lib/errors/getInvalidValueTypeError';
+import { FORMAT_LARGEST_MARKER_GROUP_SIZE, FormatMarkerEscape } from 'src/entities/Settings/constants';
 import { markerGroups } from '../../public/isStringFormat';
+import { splitByIndex } from '../splitByIndex';
+import { countItem } from '../countItem';
 
 export const splitFormatToParts = (format: string): string[] => {
-  if (typeof format !== 'string') {
-    throw new Error(getInvalidValueTypeError({ value: format, expectedType: 'string' }));
-  }
-
-  const parts: string[] = [];
   const step = format.length < FORMAT_LARGEST_MARKER_GROUP_SIZE ? format.length : FORMAT_LARGEST_MARKER_GROUP_SIZE;
 
-  let position = 0;
-  while (position < format.length) {
-    let markerGroup = format.slice(position, position + step);
+  const parts: string[] = [];
 
-    let markerGroupHead = '';
-    // while the marker group has at least one element, compare each potential marker group with the existing groups
-    for (let markerGroupSize = markerGroup.length; markerGroupSize >= 1; markerGroupSize -= 1) {
-      markerGroupHead = markerGroup.slice(0, markerGroupSize);
+  const slices = splitByIndex(format, (index) => index + step);
 
-      if (markerGroups[markerGroupSize] && markerGroupHead in markerGroups[markerGroupSize]) {
-        parts.push(markerGroupHead);
+  const isLastIteration = (index: number) => index + 1 === slices.length;
 
-        // stop the loop
-        markerGroupSize = 0;
+  let escapeNestingLevel = 0;
+  let tempPart = '';
+  let prevSliceTail = '';
+  let index = 0;
+
+  for (let slice of slices) {
+    slice = prevSliceTail.concat(slice);
+
+    const isInsideEscapeClause = escapeNestingLevel > 0;
+    if (isInsideEscapeClause) {
+      const escapeClosedIndex = slice.indexOf(FormatMarkerEscape.CLOSED);
+
+      // if the current escape clause contains any CLOSED marker
+      if (escapeClosedIndex !== -1) {
+        // increment escapeClosedIndex to capture CLOSED too
+        const [sliceHead, sliceTail] = splitByIndex(slice, escapeClosedIndex + 1);
+
+        tempPart += sliceHead;
+        prevSliceTail = sliceTail;
+        // count and add all nested OPEN markers in the current escape clause
+        escapeNestingLevel += countItem(FormatMarkerEscape.OPEN, sliceHead);
+        // decrement the escape nesting level
+        escapeNestingLevel -= 1;
+
+        // if no escape clauses active already, then release the currently stored escape clause immediately
+        if (escapeNestingLevel === 0) {
+          parts.push(tempPart);
+
+          tempPart = '';
+        }
+        // otherwise, if it does not contain any CLOSED marker, the entire slice is within the escape clause
+      } else {
+        tempPart += slice;
+        prevSliceTail = '';
       }
+    } else {
+      for (let markerGroupSize = step; markerGroupSize >= 1; markerGroupSize -= 1) {
+        const [sliceHead, sliceTail] = splitByIndex(slice, markerGroupSize);
 
-      // if the iteration is the last, merely take the marker
-      const isSingleMarkerLeft = markerGroupSize === 1;
-      if (isSingleMarkerLeft) {
-        parts.push(markerGroupHead);
+        const isValidMarkerGroup = markerGroups[markerGroupSize] && sliceHead in markerGroups[markerGroupSize];
+        if (isValidMarkerGroup) {
+          // if tempPart was previously populated with the non-marker character sequence, then release it
+          if (tempPart.length > 0) {
+            parts.push(tempPart);
+
+            tempPart = '';
+          }
+
+          parts.push(sliceHead);
+
+          // stop the loop
+          markerGroupSize = 0;
+        }
+
+        // if only 1 character left, save it
+        const isSingleMarkerLeft = markerGroupSize === 1;
+        if (isSingleMarkerLeft) {
+          tempPart += sliceHead;
+
+          if (sliceHead === FormatMarkerEscape.OPEN) {
+            escapeNestingLevel += 1;
+          }
+        }
+
+        prevSliceTail = sliceTail;
       }
     }
 
-    position += markerGroupHead.length;
+    if (isLastIteration(index)) {
+      const shouldProcessTail = prevSliceTail.length > 0;
+      if (shouldProcessTail) {
+        // add another iteration to process the remaining tail
+        slices.push(prevSliceTail);
 
-    // Note: probably, will never be the case
-    // const markerGroupTail = markerGroup.slice(markerGroupHead.length, step);
-    // if the last iteration
-    // if (position >= format.length && markerGroupTail.length > 0) {
-    //   parts.push(markerGroupTail);
-    // }
+        prevSliceTail = '';
+      }
+
+      // if tempPart still stores the non-marker character sequence at the end of the loop, then release it
+      if (tempPart.length > 0 && !shouldProcessTail) {
+        parts.push(tempPart);
+
+        tempPart = '';
+      }
+    }
+
+    index += 1;
   }
 
   return parts;
