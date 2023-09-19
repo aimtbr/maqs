@@ -1,12 +1,26 @@
-import { FORMAT_LARGEST_MARKER_GROUP_SIZE, FormatMarkerEscape } from 'src/entities/Settings/constants';
-import { markerGroups } from '../../public/isStringFormat';
+import {
+  FORMAT_LARGEST_MARKER_GROUP_SIZE,
+  FormatMarkerGroup,
+  FormatMarkerGroupType,
+  FormatMarkerGroupTypeMap,
+} from 'src/entities/Settings/constants';
 import { splitByIndex } from '../splitByIndex';
 import { countItem } from '../countItem';
 
-export const splitFormatToParts = (format: string): string[] => {
+type Part = {
+  type: FormatMarkerGroupType;
+  value: FormatMarkerGroup | string;
+};
+/**
+ * Split the string format into an array of marker groups.
+ * @example
+ * splitFormatToParts('YYYY-MM-DD[A[anything]]A[A]HH:mm:ss.SSSZ')
+ * splitFormatToParts('YYYY-MM-DDTHH:mm:ss.SSSZ')
+ */
+export const splitFormatToParts = (format: string): Part[] => {
   const step = format.length < FORMAT_LARGEST_MARKER_GROUP_SIZE ? format.length : FORMAT_LARGEST_MARKER_GROUP_SIZE;
 
-  const parts: string[] = [];
+  const parts: Part[] = [];
 
   const slices = splitByIndex(format, (index) => index + step);
 
@@ -22,23 +36,23 @@ export const splitFormatToParts = (format: string): string[] => {
 
     const isInsideEscapeClause = escapeNestingLevel > 0;
     if (isInsideEscapeClause) {
-      const escapeClosedIndex = slice.indexOf(FormatMarkerEscape.CLOSED);
+      const escapeClosedIndex = slice.indexOf(FormatMarkerGroup.ESCAPE_CLOSED);
 
       // if the current escape clause contains any CLOSED marker
       if (escapeClosedIndex !== -1) {
         // increment escapeClosedIndex to capture CLOSED too
-        const [sliceHead, sliceTail] = splitByIndex(slice, escapeClosedIndex + 1);
+        const [sliceHead, sliceTail] = splitByIndex(slice, escapeClosedIndex);
 
         tempPart += sliceHead;
-        prevSliceTail = sliceTail;
+        prevSliceTail = sliceTail.slice(1); // get the remaining part but skip the ESCAPE_CLOSED element
         // count and add all nested OPEN markers in the current escape clause
-        escapeNestingLevel += countItem(FormatMarkerEscape.OPEN, sliceHead);
+        escapeNestingLevel += countItem(FormatMarkerGroup.ESCAPE_OPEN, sliceHead);
         // decrement the escape nesting level
         escapeNestingLevel -= 1;
 
         // if no escape clauses active already, then release the currently stored escape clause immediately
         if (escapeNestingLevel === 0) {
-          parts.push(tempPart);
+          parts.push({ value: tempPart, type: FormatMarkerGroupType.ESCAPE });
 
           tempPart = '';
         }
@@ -48,31 +62,33 @@ export const splitFormatToParts = (format: string): string[] => {
         prevSliceTail = '';
       }
     } else {
-      for (let markerGroupSize = step; markerGroupSize >= 1; markerGroupSize -= 1) {
-        const [sliceHead, sliceTail] = splitByIndex(slice, markerGroupSize);
+      for (let markerGroupLevel = step; markerGroupLevel >= 1; markerGroupLevel -= 1) {
+        const [sliceHead, sliceTail] = splitByIndex(slice, markerGroupLevel);
 
-        const isValidMarkerGroup = markerGroups[markerGroupSize] && sliceHead in markerGroups[markerGroupSize];
+        const isValidMarkerGroup = sliceHead in FormatMarkerGroup;
         if (isValidMarkerGroup) {
           // if tempPart was previously populated with the non-marker character sequence, then release it
           if (tempPart.length > 0) {
-            parts.push(tempPart);
+            parts.push({ value: tempPart, type: FormatMarkerGroupType.TEXT });
 
             tempPart = '';
           }
 
-          parts.push(sliceHead);
+          parts.push({ value: sliceHead, type: FormatMarkerGroupTypeMap[sliceHead as FormatMarkerGroup] });
 
           // stop the loop
-          markerGroupSize = 0;
+          markerGroupLevel = 0;
         }
 
         // if only 1 character left, save it
-        const isSingleMarkerLeft = markerGroupSize === 1;
+        const isSingleMarkerLeft = markerGroupLevel === 1;
         if (isSingleMarkerLeft) {
-          tempPart += sliceHead;
-
-          if (sliceHead === FormatMarkerEscape.OPEN) {
+          // if the remaining character is ESCAPE_OPEN, then increment the nesting level and move forward
+          // otherwise take the character and move forward
+          if (sliceHead === FormatMarkerGroup.ESCAPE_OPEN) {
             escapeNestingLevel += 1;
+          } else {
+            tempPart += sliceHead;
           }
         }
 
@@ -91,7 +107,7 @@ export const splitFormatToParts = (format: string): string[] => {
 
       // if tempPart still stores the non-marker character sequence at the end of the loop, then release it
       if (tempPart.length > 0 && !shouldProcessTail) {
-        parts.push(tempPart);
+        parts.push({ value: tempPart, type: FormatMarkerGroupType.TEXT });
 
         tempPart = '';
       }

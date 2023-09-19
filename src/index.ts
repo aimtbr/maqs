@@ -6,16 +6,16 @@ import { today } from './lib/utils/public/today';
 // TODO: implement the async version of Maqs to dynamically import all dependencies
 // export { AMaqs } from './entities/MaqsAsync';
 
-export const maqs = function (datetime: MaqsAccepts) {
+const initializer = function (datetime: MaqsAccepts) {
   return new Maqs(datetime);
 };
+initializer.settings = settings;
+initializer.today = today;
 
-// TODO: manually extend the function own properties (helpers and functions which instantiate a class on its own)
-maqs.settings = settings;
-maqs.today = today;
-// maqs.convert = convert;
+export const maqs = Object.freeze(initializer);
 
-console.log(maqs.today().setTimezone('UTC'));
+// TODO: update a locale
+console.log(maqs.today().setTimezone('+07:00').toString('Hello [A] [MM], DD MMMM, HH:mm ATZ'));
 
 /**
  * 1. Get the current date
