@@ -15,7 +15,7 @@ initializer.today = today;
 export const maqs = Object.freeze(initializer);
 
 // TODO: update a locale
-console.log(maqs.today().setTimezone('+07:00').toString('Hello [A] [MM], DD MMMM, HH:mm ATZ'));
+console.log(maqs.today().setTimezone('+07:00').toString('Hello [A] [Hey[M[M][[[]]]]]]], DD MMMM, HH:mm ATZ'));
 
 /**
  * 1. Get the current date

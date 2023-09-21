@@ -38,25 +38,28 @@ export const splitFormatToParts = (format: string): Part[] => {
     if (isInsideEscapeClause) {
       const escapeClosedIndex = slice.indexOf(FormatMarkerGroup.ESCAPE_CLOSED);
 
-      // if the current escape clause contains any CLOSED marker
+      // if the current escape clause contains any ESCAPE_CLOSED marker
       if (escapeClosedIndex !== -1) {
-        // increment escapeClosedIndex to capture CLOSED too
-        const [sliceHead, sliceTail] = splitByIndex(slice, escapeClosedIndex);
+        const [sliceHead, sliceTail] = splitByIndex(slice, escapeClosedIndex + 1);
 
-        tempPart += sliceHead;
-        prevSliceTail = sliceTail.slice(1); // get the remaining part but skip the ESCAPE_CLOSED element
         // count and add all nested OPEN markers in the current escape clause
         escapeNestingLevel += countItem(FormatMarkerGroup.ESCAPE_OPEN, sliceHead);
         // decrement the escape nesting level
         escapeNestingLevel -= 1;
 
+        prevSliceTail = sliceTail; // get the remaining part
+
         // if no escape clauses active already, then release the currently stored escape clause immediately
         if (escapeNestingLevel === 0) {
+          tempPart += sliceHead.slice(0, sliceHead.length - 1); // cut the ESCAPE_CLOSED marker from the result
+
           parts.push({ value: tempPart, type: FormatMarkerGroupType.ESCAPE });
 
           tempPart = '';
+        } else {
+          tempPart += sliceHead;
         }
-        // otherwise, if it does not contain any CLOSED marker, the entire slice is within the escape clause
+        // otherwise, if it does not contain any ESCAPE_CLOSED marker, the entire slice is within the escape clause
       } else {
         tempPart += slice;
         prevSliceTail = '';
@@ -87,6 +90,10 @@ export const splitFormatToParts = (format: string): Part[] => {
           // otherwise take the character and move forward
           if (sliceHead === FormatMarkerGroup.ESCAPE_OPEN) {
             escapeNestingLevel += 1;
+
+            parts.push({ value: tempPart, type: FormatMarkerGroupType.TEXT });
+
+            tempPart = '';
           } else {
             tempPart += sliceHead;
           }

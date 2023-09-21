@@ -21,8 +21,6 @@ import { getInvalidValueError } from 'src/lib/errors/getInvalidValueError';
 import { settings } from '../Settings';
 import { isStringFormat } from 'src/lib/utils/public/isStringFormat';
 import { splitFormatToParts } from 'src/lib/utils/private/splitFormatToParts';
-import { omitProperties } from 'src/lib/utils/private/omitProperties';
-import { clearEscapes } from 'src/lib/utils/private/clearEscapes';
 import { getInvalidValueTypeError } from 'src/lib/errors/getInvalidValueTypeError';
 
 export type MaqsAccepts = string | number | Date | Maqs;
@@ -411,8 +409,6 @@ export class Maqs {
 
     const formatParts = splitFormatToParts(format);
 
-    // TODO: if this.timezoneOffset > 0 OR < 0, use DATETIME_FORMAT_TZ_ISO8601
-    // TODO: don't track the nestedness of ESCAPE characters
     const intlOptions = formatParts.reduce((accumulator, part, partIndex) => {
       const { type, value } = part;
 
@@ -461,11 +457,6 @@ export class Maqs {
         // if the marker group is a time zone, then replace the group with a time zone
         if (type === FormatMarkerGroupType.TIME_ZONE) {
           return this.timezone;
-        }
-
-        // if the marker group is an escape sequence, then remove the ESCAPE characters
-        if (type === FormatMarkerGroupType.ESCAPE) {
-          return clearEscapes(value);
         }
 
         return value;
