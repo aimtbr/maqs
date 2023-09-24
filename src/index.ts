@@ -15,7 +15,16 @@ initializer.today = today;
 export const maqs = Object.freeze(initializer);
 
 // TODO: update a locale
-console.log(maqs.today().setTimezone('+07:00').toString('Hello [A] [Hey[M[M][[[]]]]]]], DD MMMM, HH:mm ATZ'));
+const now = maqs.today();
+console.log(
+  now.setTimezone('+07:00').setSeconds(0).setMilliseconds(0).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ')
+);
+
+console.log(now.addMilliseconds(1100).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ'));
+console.log(now.subtractMilliseconds(200).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ'));
+console.log(now.addMilliseconds(200).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ'));
+console.log(now.subtractSeconds(3).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ'));
+console.log(now.addSeconds(45).toString('Hello [A], DD MMMM, HH:mm:ss.SSS ATZ'));
 
 /**
  * 1. Get the current date

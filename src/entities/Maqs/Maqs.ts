@@ -3,10 +3,14 @@ import {
   FormatMarkerGroup,
   FormatMarkerGroupParamsMap,
   FormatMarkerGroupType,
+  HOURS_IN_DAY,
   LEAP_YEAR_DAYS_IN_SECOND_MONTH,
   LEAP_YEAR_FREQUENCY,
   MILLISECONDS_IN_SECOND,
+  MINUTES_IN_HOUR,
   SECONDS_IN_MINUTE,
+  TimeUnit,
+  TimeUnitMS,
   UTC_OFFSET,
 } from 'src/entities/Settings/constants';
 import { convertTimezoneToOffset } from 'src/lib/utils/private/convertTimezoneToOffset';
@@ -257,55 +261,341 @@ export class Maqs {
     }
   }
 
-  // TODO: implement setYear|Month|Day and so on
+  #updateTimestamp(unitsToRemove: number, unitsToAdd: number, unit: keyof typeof TimeUnitMS = TimeUnit.MILLISECOND) {
+    const unitsToRemoveMS = unitsToRemove * TimeUnitMS[unit];
+    const unitsToAddMS = unitsToAdd * TimeUnitMS[unit];
+
+    // if the new change to apply is less than 0 milliseconds, we should just subtract that value from the original one
+    if (unitsToAdd < 0) {
+      this.#timestamp = this.#timestamp + unitsToAddMS;
+    } else {
+      this.#timestamp = this.#timestamp - unitsToRemoveMS + unitsToAddMS;
+    }
+  }
+
   /**
-   * Set the milliseconds number of the current instance.
+   * Set **minutes** of the current instance.
    *
-   * @param milliseconds The number of milliseconds to add or subtract from the original value.
+   * @param minutes The number of minutes to set instead of the original value.
+   */
+  setMinutes(minutes: number): Maqs {
+    if (typeof minutes !== 'number') {
+      throw getInvalidValueTypeError({ value: minutes, expectedType: 'number' });
+    }
+
+    // check if the number of minutes is not within a valid range
+    if (minutes < 0 || minutes >= MINUTES_IN_HOUR) {
+      throw getInvalidValueError({
+        value: minutes,
+        name: 'number of minutes',
+        allowedValues: ['0', MINUTES_IN_HOUR, 'and everything between'],
+      });
+    }
+
+    this.#updateTimestamp(this.#minute, minutes, TimeUnit.MINUTE);
+    this.#minute = minutes;
+
+    return this;
+  }
+
+  /**
+   * Add **minutes** to the current instance.
+   *
+   * @param minutes The number of minutes to add to the original value.
+   */
+  addMinutes(minutes: number): Maqs {
+    if (typeof minutes !== 'number') {
+      throw getInvalidValueTypeError({ value: minutes, expectedType: 'number' });
+    }
+
+    // if minutes is a negative number, then it should be subtracted instead
+    if (minutes < 0) {
+      const minutesPositive = Math.abs(minutes);
+
+      return this.subtractMinutes(minutesPositive);
+    }
+
+    const minutesDiff = minutes + this.minute;
+    let minutesNext = minutesDiff;
+
+    // if the added number of minutes is more than 1 hour
+    if (minutesDiff >= MINUTES_IN_HOUR) {
+      const hoursInValue = minutesNext / MINUTES_IN_HOUR;
+
+      const hoursOverflow = Math.trunc(hoursInValue);
+      if (hoursOverflow >= 1) {
+        // this.addHours(hoursOverflow);
+      }
+
+      minutesNext = Math.trunc((hoursInValue - hoursOverflow) * MINUTES_IN_HOUR);
+    }
+
+    this.setMinutes(minutesNext);
+
+    return this;
+  }
+
+  /**
+   * Subtract **minutes** from the current instance.
+   *
+   * @param minutes The number of minutes to subtract from the original value.
+   */
+  subtractMinutes(minutes: number): Maqs {
+    if (typeof minutes !== 'number') {
+      throw getInvalidValueTypeError({ value: minutes, expectedType: 'number' });
+    }
+
+    // if minutes is a negative number, then it should be added instead
+    if (minutes < 0) {
+      const minutesPositive = Math.abs(minutes);
+
+      return this.addMinutes(minutesPositive);
+    }
+
+    const minutesDiff = this.minute - minutes;
+    let minutesNext = minutesDiff;
+
+    // if the subtracted number of minutes is greater than the current value
+    if (minutesDiff < 0) {
+      const minutesPositive = Math.abs(minutesDiff);
+      let hoursOverflow = 1; // minutes should be rewinded at least 1 minute
+
+      // if the subtracted number of minutes is more than 1 minute
+      if (minutesPositive >= MINUTES_IN_HOUR) {
+        const hoursInValue = minutesPositive / MINUTES_IN_HOUR;
+
+        hoursOverflow = Math.trunc(hoursInValue);
+        if (hoursOverflow >= 1) {
+          // this.subtractHours(hoursOverflow);
+        }
+
+        minutesNext = (hoursInValue - hoursOverflow) * MINUTES_IN_HOUR;
+      } else {
+        minutesNext = MINUTES_IN_HOUR - minutesPositive;
+      }
+
+      // rewind minutes
+      // this.subtractHours(hoursOverflow);
+    }
+
+    this.setMinutes(minutesNext);
+
+    return this;
+  }
+
+  /**
+   * Set **seconds** of the current instance.
+   *
+   * @param seconds The number of seconds to set instead of the original value.
+   */
+  setSeconds(seconds: number): Maqs {
+    if (typeof seconds !== 'number') {
+      throw getInvalidValueTypeError({ value: seconds, expectedType: 'number' });
+    }
+
+    // check if the number of seconds is not within a valid range
+    if (seconds < 0 || seconds >= SECONDS_IN_MINUTE) {
+      throw getInvalidValueError({
+        value: seconds,
+        name: 'number of seconds',
+        allowedValues: ['0', SECONDS_IN_MINUTE, 'and everything between'],
+      });
+    }
+
+    this.#updateTimestamp(this.#second, seconds, TimeUnit.SECOND);
+    this.#second = seconds;
+
+    return this;
+  }
+
+  /**
+   * Add **seconds** to the current instance.
+   *
+   * @param seconds The number of seconds to add to the original value.
+   */
+  addSeconds(seconds: number): Maqs {
+    if (typeof seconds !== 'number') {
+      throw getInvalidValueTypeError({ value: seconds, expectedType: 'number' });
+    }
+
+    // if seconds is a negative number, then it should be subtracted instead
+    if (seconds < 0) {
+      const secondsPositive = Math.abs(seconds);
+
+      return this.subtractSeconds(secondsPositive);
+    }
+
+    const secondsDiff = seconds + this.second;
+    let secondsNext = secondsDiff;
+
+    // if the added number of seconds is more than 1 minute
+    if (secondsDiff >= SECONDS_IN_MINUTE) {
+      const minutesInValue = secondsNext / SECONDS_IN_MINUTE;
+
+      const minutesOverflow = Math.trunc(minutesInValue);
+      if (minutesOverflow >= 1) {
+        this.addMinutes(minutesOverflow);
+      }
+
+      secondsNext = Math.trunc((minutesInValue - minutesOverflow) * SECONDS_IN_MINUTE);
+    }
+
+    this.setSeconds(secondsNext);
+
+    return this;
+  }
+
+  /**
+   * Subtract **seconds** from the current instance.
+   *
+   * @param seconds The number of seconds to subtract from the original value.
+   */
+  subtractSeconds(seconds: number): Maqs {
+    if (typeof seconds !== 'number') {
+      throw getInvalidValueTypeError({ value: seconds, expectedType: 'number' });
+    }
+
+    // if seconds is a negative number, then it should be added instead
+    if (seconds < 0) {
+      const secondsPositive = Math.abs(seconds);
+
+      return this.addSeconds(secondsPositive);
+    }
+
+    const secondsDiff = this.second - seconds;
+    let secondsNext = secondsDiff;
+
+    // if the subtracted number of seconds is greater than the current value
+    if (secondsDiff < 0) {
+      const secondsPositive = Math.abs(secondsDiff);
+      let minutesOverflow = 1; // seconds should be rewinded at least 1 second
+
+      // if the subtracted number of seconds is more than 1 second
+      if (secondsPositive >= SECONDS_IN_MINUTE) {
+        const minutesInValue = secondsPositive / SECONDS_IN_MINUTE;
+
+        minutesOverflow = Math.trunc(minutesInValue);
+        if (minutesOverflow >= 1) {
+          this.subtractMinutes(minutesOverflow);
+        }
+
+        secondsNext = (minutesInValue - minutesOverflow) * SECONDS_IN_MINUTE;
+      } else {
+        secondsNext = SECONDS_IN_MINUTE - secondsPositive;
+      }
+
+      // rewind seconds
+      this.subtractMinutes(minutesOverflow);
+    }
+
+    this.setSeconds(secondsNext);
+
+    return this;
+  }
+
+  /**
+   * Set **milliseconds** of the current instance.
+   *
+   * @param milliseconds The number of milliseconds to set instead of the original value.
    */
   setMilliseconds(milliseconds: number): Maqs {
     if (typeof milliseconds !== 'number') {
       throw getInvalidValueTypeError({ value: milliseconds, expectedType: 'number' });
     }
 
-    // if the invalid number of milliseconds was provided
+    // check if the number of milliseconds is not within a valid range
     if (milliseconds < 0 || milliseconds >= MILLISECONDS_IN_SECOND) {
       throw getInvalidValueError({
         value: milliseconds,
         name: 'number of milliseconds',
-        allowedValues: ['0', '999', 'and everything between'],
+        allowedValues: ['0', MILLISECONDS_IN_SECOND, 'and everything between'],
       });
     }
 
+    this.#updateTimestamp(this.#millisecond, milliseconds);
     this.#millisecond = milliseconds;
 
     return this;
   }
 
+  /**
+   * Add **milliseconds** to the current instance.
+   *
+   * @param milliseconds The number of milliseconds to add to the original value.
+   */
   addMilliseconds(milliseconds: number): Maqs {
     if (typeof milliseconds !== 'number') {
       throw getInvalidValueTypeError({ value: milliseconds, expectedType: 'number' });
     }
 
-    // if adding
-    if (milliseconds > 0) {
-      // TODO: implement
+    // if milliseconds is a negative number, then it should be subtracted instead
+    if (milliseconds < 0) {
+      const millisecondsPositive = Math.abs(milliseconds);
+
+      return this.subtractMilliseconds(millisecondsPositive);
     }
 
-    // if subtracting
-    if (milliseconds < 0) {
-      // TODO: implement
+    const millisecondsDiff = milliseconds + this.millisecond;
+    let millisecondsNext = millisecondsDiff;
+
+    // if the added number of milliseconds is more than 1 second
+    if (millisecondsDiff >= MILLISECONDS_IN_SECOND) {
+      const secondsInValue = millisecondsNext / MILLISECONDS_IN_SECOND;
+
+      const secondsOverflow = Math.trunc(secondsInValue);
+      if (secondsOverflow >= 1) {
+        this.addSeconds(secondsOverflow);
+      }
+
+      millisecondsNext = Math.trunc((secondsInValue - secondsOverflow) * MILLISECONDS_IN_SECOND);
     }
+
+    this.setMilliseconds(millisecondsNext);
 
     return this;
   }
 
+  /**
+   * Subtract **milliseconds** from the current instance.
+   *
+   * @param milliseconds The number of milliseconds to subtract from the original value.
+   */
   subtractMilliseconds(milliseconds: number): Maqs {
     if (typeof milliseconds !== 'number') {
       throw getInvalidValueTypeError({ value: milliseconds, expectedType: 'number' });
     }
 
-    this.addMilliseconds(-1 * milliseconds);
+    // if milliseconds is a negative number, then it should be added instead
+    if (milliseconds < 0) {
+      const millisecondsPositive = Math.abs(milliseconds);
+
+      return this.addMilliseconds(millisecondsPositive);
+    }
+
+    const millisecondsDiff = this.millisecond - milliseconds;
+    let millisecondsNext = millisecondsDiff;
+
+    // if the subtracted number of milliseconds is greater than the current value
+    if (millisecondsDiff < 0) {
+      const millisecondsPositive = Math.abs(millisecondsDiff);
+      let secondsOverflow = 1; // seconds should be rewinded at least 1 second
+
+      // if the subtracted number of milliseconds is more than 1 second
+      if (millisecondsPositive >= MILLISECONDS_IN_SECOND) {
+        const secondsInValue = millisecondsPositive / MILLISECONDS_IN_SECOND;
+
+        secondsOverflow = Math.trunc(secondsInValue);
+
+        millisecondsNext = (secondsInValue - secondsOverflow) * MILLISECONDS_IN_SECOND;
+      } else {
+        millisecondsNext = MILLISECONDS_IN_SECOND - millisecondsPositive;
+      }
+
+      // rewind seconds
+      this.subtractSeconds(secondsOverflow);
+    }
+
+    this.setMilliseconds(millisecondsNext);
 
     return this;
   }

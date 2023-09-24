@@ -16,7 +16,8 @@
   "scripts": {
     "lint": "npx tsc",
     "build": "rm -rf dist && npx tsc --project tsconfig.production.json && npx babel src -d dist --env-name production --extensions \".ts\"",
-    "build:dev": "rm -rf dist && npx tsc --project tsconfig.json && npx babel src -d dist --env-name development --extensions \".ts\""
+    "build:dev": "rm -rf dist && npx tsc --project tsconfig.json && npx babel src -d dist --env-name development --extensions \".ts\"",
+    "start": "npm run build:dev && node ./dist/index.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.9",
@@ -31,3 +32,4 @@
     "@babel/runtime": "^7.22.6"
   }
 }
+

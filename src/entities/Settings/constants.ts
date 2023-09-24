@@ -36,6 +36,24 @@ export const MINUTES_IN_HOUR = 60;
 export const SECONDS_IN_MINUTE = 60;
 export const MILLISECONDS_IN_SECOND = 1000;
 
+export enum TimeUnit {
+  YEAR = 'year',
+  MONTH = 'month',
+  DAY = 'day',
+  HOUR = 'hour',
+  MINUTE = 'min',
+  SECOND = 'sec',
+  MILLISECOND = 'ms',
+}
+
+export const TimeUnitMS = {
+  [TimeUnit.DAY]: 86_400_000,
+  [TimeUnit.HOUR]: 3_600_000,
+  [TimeUnit.MINUTE]: 60_000,
+  [TimeUnit.SECOND]: 1000,
+  [TimeUnit.MILLISECOND]: 1,
+};
+
 /**
  * Format
  */
